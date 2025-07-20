@@ -25,12 +25,12 @@ type CoinbaseSubscription struct {
 
 // CoinbaseMessage represents the message received from Coinbase
 type CoinbaseMessage struct {
-	Type      string  `json:"type"`
-	ProductID string  `json:"product_id"`
-	Price     string  `json:"price"`
-	Side      string  `json:"side"`
-	Time      string  `json:"time"`
-	Size      string  `json:"size"`
+	Type      string `json:"type"`
+	ProductID string `json:"product_id"`
+	Price     string `json:"price"`
+	Side      string `json:"side"`
+	Time      string `json:"time"`
+	Size      string `json:"size"`
 }
 
 // PriceData stores price data for visualization
@@ -162,7 +162,7 @@ func connectAndListen(products []string) error {
 				log.Printf("Error parsing price %s: %v", msg.Price, err)
 				continue
 			}
-			
+
 			dataStore.AddPrice(msg.ProductID, price)
 			fmt.Printf("Product: %s, Price: %.2f, Side: %s\n", msg.ProductID, price, msg.Side)
 		}
@@ -303,12 +303,12 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 
 func handleData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	// Get data for each product
 	data := map[string][]PriceData{
 		"BTC-USD": dataStore.GetPrices("BTC-USD"),
 		"ETH-USD": dataStore.GetPrices("ETH-USD"),
 	}
-	
+
 	json.NewEncoder(w).Encode(data)
 }
