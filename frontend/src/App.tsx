@@ -10,7 +10,6 @@ function App() {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastPrices, setLastPrices] = useState<{ [key: string]: number }>({});
 
   const fetchData = async () => {
     try {
@@ -18,15 +17,6 @@ function App() {
       setData(newData);
       setError(null);
       
-      // Calculate price changes
-      const newLastPrices: { [key: string]: number } = {};
-      Object.keys(newData).forEach(symbol => {
-        if (newData[symbol] && newData[symbol].length > 0) {
-          newLastPrices[symbol] = newData[symbol][newData[symbol].length - 1].Price;
-        }
-      });
-      setLastPrices(newLastPrices);
-
       // Transform data for chart
       const transformedData = transformDataForChart(newData);
       setChartData(transformedData);
@@ -83,11 +73,19 @@ function App() {
   };
 
   useEffect(() => {
-    fetchData(); // Initial fetch
-    const interval = setInterval(fetchData, 1000); // Fetch every second
+    let interval: NodeJS.Timeout;
     
-    return () => clearInterval(interval);
-  }, [loading]);
+    const startFetching = async () => {
+      await fetchData(); // Initial fetch
+      interval = setInterval(fetchData, 1000); // Fetch every second
+    };
+    
+    startFetching();
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, []); // fetchData is stable and doesn't need to be in dependencies
 
   if (loading) {
     return (
