@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -109,10 +110,21 @@ func main() {
 }
 
 func startWebSocketClient(products []string) {
+	for {
+		err := connectAndListen(products)
+		if err != nil {
+			log.Printf("WebSocket connection error: %v. Reconnecting in 5 seconds...", err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+	}
+}
+
+func connectAndListen(products []string) error {
 	// Connect to WebSocket
 	c, _, err := websocket.DefaultDialer.Dial(coinbaseWSURL, nil)
 	if err != nil {
-		log.Fatal("dial:", err)
+		return fmt.Errorf("dial error: %w", err)
 	}
 	defer c.Close()
 
@@ -125,7 +137,7 @@ func startWebSocketClient(products []string) {
 
 	err = c.WriteJSON(subscription)
 	if err != nil {
-		log.Fatal("subscribe:", err)
+		return fmt.Errorf("subscribe error: %w", err)
 	}
 
 	fmt.Println("Connected to Coinbase WebSocket and subscribed to:", products)
@@ -134,20 +146,22 @@ func startWebSocketClient(products []string) {
 	for {
 		_, message, err := c.ReadMessage()
 		if err != nil {
-			log.Println("read error:", err)
-			return
+			return fmt.Errorf("read error: %w", err)
 		}
 
 		var msg CoinbaseMessage
 		if err := json.Unmarshal(message, &msg); err != nil {
-			log.Println("unmarshal error:", err)
+			log.Printf("JSON unmarshal error: %v", err)
 			continue
 		}
 
 		// Process only match messages with price
 		if msg.Type == "match" && msg.Price != "" {
-			var price float64
-			fmt.Sscanf(msg.Price, "%f", &price)
+			price, err := strconv.ParseFloat(msg.Price, 64)
+			if err != nil {
+				log.Printf("Error parsing price %s: %v", msg.Price, err)
+				continue
+			}
 			
 			dataStore.AddPrice(msg.ProductID, price)
 			fmt.Printf("Product: %s, Price: %.2f, Side: %s\n", msg.ProductID, price, msg.Side)
